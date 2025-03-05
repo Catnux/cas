@@ -183,6 +183,7 @@ headers = [
     ".GETARGV 0400000000",
     ".FILELEN 0400000001",
     ".COPYUNTIL 0400000002"
+    ".PAUSE 0400000003",
 ]
 
 regs = [
