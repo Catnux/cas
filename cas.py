@@ -91,7 +91,7 @@ for line in lines:
                 inpt = "{:010}".format(int(inpt))
             lineout += f"{ictn}{inpt}"
             assert (len(lineout) % 12 == 0) or '{' in lineout
-            out += lineout
+        out += lineout
     except Exception as e:
         print(f"Failed to assemble line \"{line}\" with error {e}; Lineout is {lineout}")
         raise e
