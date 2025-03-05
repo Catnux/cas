@@ -18,6 +18,7 @@ along with this program; if not, see
 '''
 import sys
 import config
+import math
 
 file = open(sys.argv[1], 'r')
 lines = file.read().replace('\n','').split(';')
@@ -28,17 +29,31 @@ if lines[0] == 'NOHEADERS':
     lines = lines[1:]
 else:
     lines = config.headers + lines
-for line in lines:
+for index, line in enumerate(lines):
+    line = line.strip()
+    if not line.startswith('+'):
+        break
+    else:
+        line = line[1:]
+        print(f"Added headerfile {line + '.c86'}")
+        plusfile = open(line + '.c86', 'r')
+        lines = plusfile.read().replace('\n','').split(';') + lines
+for index, line in enumerate(lines):
     lineout = ""
     try:
         line = line.strip()
-        if line.startswith('.'):
+        if line.startswith('+'):
+            continue
+        elif line.startswith('.'):
             name = line.split(' ')[0][1:]
             val = line.split(' ')[1]
             assert name.isalpha()
             assert val.isnumeric() or val.startswith('.')
             if val.startswith('.'):
-                val = constants[val[1:]]
+                try:
+                    val = constants[val[1:]]
+                except KeyError:
+                    raise Exception(f"Assembler constant {val[1:]} not found.")
             constants[name] = val
         elif line.startswith('#'):
             name = line.split('=')[0][1:].strip()
@@ -47,21 +62,27 @@ for line in lines:
             if val.isnumeric():
                 lineout += "{:012}".format(int(val))
             elif val.startswith('.'):
-                val = constants[val[1:]]
+                try:
+                    val = constants[val[1:]]
+                except KeyError:
+                    raise Exception(f"Assembler constant {val[1:]} not found.")
                 lineout += "{:012}".format(int(val))
             elif val.startswith('{'):
                 bites = val[1:-1].replace(' ','').split(',')
                 for bite in bites:
                    if bite:
                        if bite.startswith('.'):
-                           bite = constants[bite[1:]]
+                            try:
+                                bite = constants[bite[1:]]
+                            except KeyError:
+                                raise Exception(f"Assembler constant {bite[1:]} not found.")
                        lineout += "{:012}".format(int(bite))
             elif val.startswith('"'):
-                val = val[1:-2]
+                val = val[1:-1]
                 val = val.replace('\\n','\n')
                 val = val.replace('@', 'at')
                 val += '@'
-                constants['L'+name] = len(val)
+                constants['L'+name] = math.ceil(len(val)/6)
                 bite = ''
                 for char in val:
                     if len(bite) == 12:
@@ -69,6 +90,14 @@ for line in lines:
                         bite = ''
                     bite += "{:02}".format(config.charset.index(char))
                 lineout += "{:012}".format(int(bite))
+            elif val.startswith('\''):
+                val = val[1:-1]
+                val = val.replace('\\n','\n')
+                val = val.replace('@', 'at')
+                val += '@'
+                constants['L'+name] = len(val)
+                for char in val:
+                    lineout += "{:012}".format(config.charset.index(char))
             elif 'x' in val:
                 bite = val.split('x')[0].strip()
                 lineout += "{:012}".format(int(bite))*int(val.split('x')[1].strip())
@@ -78,12 +107,16 @@ for line in lines:
             ictn = config.itable[line.split(' ')[0].upper()]
             inpt: str = line.split(' ')[1]
             if inpt.startswith('.'):
-                inpt = "{:010}".format(constants[inpt[1:]])
+                try:
+                    inpt = "{:010}".format(constants[inpt[1:]])
+                except KeyError:
+                    raise Exception(f"Assembler constant {inpt[1:]} not found.")
             elif inpt.startswith('#'):
                 inpt = f"{{addrpoints['{inpt[1:]}']}}"
             elif inpt.isalpha():
-                assert ictn != "00"
-                ictn= f"{int(ictn)+47}"
+                if ictn == '00':
+                    raise Exception(f"Registers may not be passed to a NOOP.")
+                ictn= f"{int(ictn) + max([int(x) for x in config.itable.values()])}"
                 inpt = config.regs.index(inpt.lower())
             elif not inpt.startswith('{'):
                 inpt = "{:010}".format(int(inpt))
@@ -93,8 +126,13 @@ for line in lines:
             assert (len(lineout) % 12 == 0) or '{' in lineout
         out += lineout
     except Exception as e:
-        print(f"Failed to assemble line \"{line}\" with error {e}; Lineout is {lineout}")
+        print(f"Failed to assemble line {index} \"{line}\" with error: {e}.")
         raise e
-out = eval(f'f"{out}"')
+        quit()
+try:
+    out = eval(f'f"{out}"')
+except KeyError as e:
+    print(f"Pointer not found: {e}")
+    quit()
 assert len(out) % 12 == 0
-open(sys.argv[1]+'.mco', 'w').write(out)
+open((sys.argv[1][:-4] if sys.argv[1].endswith('.c86') else sys.argv[1])+'.mco', 'w').write(out)
