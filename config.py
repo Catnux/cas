@@ -202,6 +202,7 @@ headers = [
     ".FILELEN 0400000001",
     ".COPYUNTIL 0400000002",
     ".PAUSE 0400000003",
+    ".HASH 0400000004"
 ]
 
 regs = [
@@ -212,5 +213,6 @@ regs = [
     "ptr",
     "flag",
     "pid",
-    "asl"
+    "asl",
+    "iokey"
 ]

@@ -8,6 +8,7 @@ __pycache__/
 *.c86
 *.mco
 catutils/
+*.out
 # Distribution / packaging
 .Python
 build/
