@@ -47,7 +47,6 @@ for index, line in enumerate(lines):
         elif line.startswith('.'):
             name = line.split(' ')[0][1:]
             val = line.split(' ')[1]
-            assert name.isalpha()
             assert val.isnumeric() or val.startswith('.')
             if val.startswith('.'):
                 try:
@@ -100,6 +99,7 @@ for index, line in enumerate(lines):
                     lineout += "{:012}".format(config.charset.index(char))
             elif 'x' in val:
                 bite = val.split('x')[0].strip()
+                constants['L'+name] = val.split('x')[1].strip()
                 lineout += "{:012}".format(int(bite))*int(val.split('x')[1].strip())
         elif line.startswith(':'):
             addrpoints[line[1:]] = "{:010}".format(len(out)//12)
