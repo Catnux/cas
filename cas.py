@@ -108,7 +108,7 @@ for index, line in enumerate(lines):
             inpt: str = line.split(' ')[1]
             if inpt.startswith('.'):
                 try:
-                    inpt = "{:010}".format(constants[inpt[1:]])
+                    inpt = "{:010}".format(int(constants[inpt[1:]]))
                 except KeyError:
                     raise Exception(f"Assembler constant {inpt[1:]} not found.")
             elif inpt.startswith('#'):
